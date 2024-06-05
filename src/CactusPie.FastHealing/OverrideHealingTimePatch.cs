@@ -211,6 +211,7 @@ namespace CactusPie.FastHealing
             const string grizzly = "AMK_Grizzly";
             const string salewa = "salewa";
             const string carMedkit = "item_meds_automedkit";
+            const string ifak = "item_meds_medkit_ifak";
             const string afak = "item_meds_afak";
             const string yellowMedkit = "medkit";
 
@@ -224,9 +225,9 @@ namespace CactusPie.FastHealing
 
             if (itemName == grizzly ||
                 itemName == salewa ||
-                itemName == salewa ||
                 itemName == carMedkit ||
                 itemName == afak ||
+                itemName == ifak ||
                 itemName == yellowMedkit)
             {
                 return MedsItemType.Medkit;
