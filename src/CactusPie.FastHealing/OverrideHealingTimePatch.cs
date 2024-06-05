@@ -45,10 +45,10 @@ namespace CactusPie.FastHealing
 
             switch (item)
             {
-                case GClass2537 _:
+                case GClass2726 _:
                     delay = Singleton<BackendConfigSettingsClass>.Instance.Health.Effects.MedEffect.MedKitStartDelay;
                     break;
-                case GClass2540 _:
+                case GClass2729 _:
                     delay = Singleton<BackendConfigSettingsClass>.Instance.Health.Effects.MedEffect.MedicalStartDelay;
                     break;
                 default:
