@@ -49,11 +49,11 @@ namespace CactusPie.FastHealing
             switch (item)
             {
                 
-                case GClass2726 _:
+                case GClass2741 _:
                     Logger.LogInfo("PatchPrefix: Switch statement on item entered - GClass2726 - MedKitStartDelay");
                     delay = Singleton<BackendConfigSettingsClass>.Instance.Health.Effects.MedEffect.MedKitStartDelay;
                     break;
-                case GClass2729 _:
+                case GClass2744 _:
                     Logger.LogInfo("PatchPrefix: Switch statement on item entered - GClass2729 - MedicalStartDelay");
                     delay = Singleton<BackendConfigSettingsClass>.Instance.Health.Effects.MedEffect.MedicalStartDelay;
                     break;
