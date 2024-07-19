@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 using System.Reflection;
-using Aki.Reflection.Patching;
+using SPT.Reflection.Patching;
 using CactusPie.FastHealing.Enums;
 using Comfort.Common;
 using EFT;
@@ -24,8 +24,10 @@ namespace CactusPie.FastHealing
 
         protected override MethodBase GetTargetMethod()
         {
-            MethodInfo method = typeof(ActiveHealthController).GetMethod("DoMedEffect", BindingFlags.Public | BindingFlags.Instance);
-            return method;
+#if DEBUG
+            Logger.LogInfo("GetTargetMethod called");
+#endif
+            return AccessTools.Method(typeof(ActiveHealthController), nameof(ActiveHealthController.DoMedEffect));
         }
 
         [PatchPrefix]
@@ -36,8 +38,14 @@ namespace CactusPie.FastHealing
             EBodyPart bodyPart,
             float? amount = null)
         {
+#if DEBUG
+            Logger.LogInfo("Entered PatchPrefix"); 
+#endif
             if (!(item is MedsClass medsItem))
             {
+#if DEBUG
+                Logger.LogInfo("PatchPrefix: Item is not medsclass item, returning");
+#endif                
                 return true;
             }
 
@@ -45,10 +53,17 @@ namespace CactusPie.FastHealing
 
             switch (item)
             {
-                case GClass2726 _:
+                
+                case GClass2741 _: //Look for TryGetBodyPartToApply to update in the future
+#if DEBUG
+                    Logger.LogInfo("PatchPrefix: Switch statement on item entered - GClass2726 - MedKitStartDelay");
+#endif                    
                     delay = Singleton<BackendConfigSettingsClass>.Instance.Health.Effects.MedEffect.MedKitStartDelay;
                     break;
-                case GClass2729 _:
+                case GClass2744 _: //Look for TryGetBodyPartToApply to update in the future
+#if DEBUG 
+                    Logger.LogInfo("PatchPrefix: Switch statement on item entered - GClass2729 - MedicalStartDelay");
+#endif
                     delay = Singleton<BackendConfigSettingsClass>.Instance.Health.Effects.MedEffect.MedicalStartDelay;
                     break;
                 default:
@@ -69,6 +84,9 @@ namespace CactusPie.FastHealing
 
             if (!tryGetBodyPartToApplyResult)
             {
+#if DEBUG
+                Logger.LogInfo("PatchPrefix: Can't get body part to apply result, returning."); 
+#endif
                 return true;
             }
 
@@ -76,6 +94,9 @@ namespace CactusPie.FastHealing
 
             if (!damagedBodyPart.HasValue)
             {
+#if DEBUG
+                Logger.LogInfo("PatchPrefix: Body part does not have a value, returning.");
+#endif                
                 return true;
             }
 
@@ -87,17 +108,35 @@ namespace CactusPie.FastHealing
 
             bool isBodyPartDestroyed = player.HealthController.IsBodyPartDestroyed(damagedBodyPartValue);
 
+            if(damagedBodyPartValue.Equals(null) || medsItem.Equals(null) || delay.Equals(null) || isBodyPartDestroyed.Equals(null))
+            {
+#if DEBUG
+                Logger.LogError("Null values detected, error");  
+#endif
+            }
+
             float healingTime = medsItem.HealthEffectsComponent.UseTimeFor(damagedBodyPartValue);
+#if DEBUG
+            Logger.LogInfo("PatchPrefix: Starting ealing time is " + healingTime);  
+#endif
             if (isBodyPartDestroyed && medsItem.HealthEffectsComponent.AffectsAny(EDamageEffectType.DestroyedPart))
             {
                 healingTime /= 1f + (float)player.Skills.SurgerySpeed;
+#if DEBUG
+                Logger.LogInfo("PatchPrefix: New healing time is " + healingTime);  
+#endif
             }
 
             healingTime = GetModifiedHealingTime(player, healingTime, medsItemType, damagedBodyPartValue);
-
+#if DEBUG
+            Logger.LogInfo("PatchPrefix: Modified healing time is " + healingTime);  
+#endif
             Action<object> addEffectCallback = medEffectObj =>
             {
                 InitEffectMethod.Invoke(medEffectObj, new object[] { medsItem, 1f });
+#if DEBUG
+                Logger.LogInfo("PatchPrefix:  InitEffectMethod.Invoke called.");  
+#endif
             };
 
             __result = (IEffect)AddEffectMethod.Invoke(
@@ -111,13 +150,18 @@ namespace CactusPie.FastHealing
                     (float?)null,
                     addEffectCallback,
                 });
-
+#if DEBUG
+            Logger.LogInfo("PatchPrefix: Result for Effect Calculated, calling back.");  
+#endif
             return false;
         }
 
         private static bool BodyPartHasNegativeEffect(IEffect effect)
         {
             Type effectType = effect.GetType();
+#if DEBUG
+            Logger.LogInfo("BodyPartHasNegativeEffect: returning effect type of " + effectType);  
+#endif
             return effectType == LightBleedingType || effectType == HeavyBleedingType || effectType == FractureType;
         }
 
@@ -125,6 +169,9 @@ namespace CactusPie.FastHealing
         {
             if (medsItemType == MedsItemType.Other)
             {
+#if DEBUG
+                Logger.LogInfo("GetModifiedHealingTime: Other item detected, healing time of " + healingTime);
+#endif                
                 return healingTime;
             }
 
@@ -134,7 +181,9 @@ namespace CactusPie.FastHealing
                 {
                     healingTime *= FastHealingPlugin.SurgerySpeedMultiplier.Value;
                 }
-
+#if DEBUG
+                Logger.LogInfo("GetModifiedHealingTime: SurgeryKit detected, healing time of " + healingTime);  
+#endif
                 return healingTime;
             }
 
@@ -148,12 +197,18 @@ namespace CactusPie.FastHealing
                     if (healthPercentage > (FastHealingPlugin.DynamicHealTimeThreshold.Value / 100f))
                     {
                         healingTime *= (1f - healthPercentage) * FastHealingPlugin.DynamicHealTimeMultiplier.Value;
+#if DEBUG
+                        Logger.LogInfo("GetModifiedHealingTime: Medkit detected and dynamic heal time enabled, healing time of " + healingTime );  
+#endif
                     }
                 }
 
                 if (FastHealingPlugin.HealingSpeedMultiplierEnabled.Value)
                 {
                     healingTime *= FastHealingPlugin.HealingTimeMultiplier.Value;
+#if DEBUG
+                    Logger.LogInfo("GetModifiedHealingTime: Medkit detected, healing time of " + healingTime);  
+#endif
                 }
             }
 
@@ -164,11 +219,17 @@ namespace CactusPie.FastHealing
         {
             if (player.HealthController.GetAllActiveEffects(bodyPart).Any(BodyPartHasNegativeEffect))
             {
+#if DEBUG
+                Logger.LogInfo("GetModifiedDelay: Any body part has negative effect, delay is " + delay);  
+#endif
                 return delay;
             }
 
             if (medsItemType == MedsItemType.Other)
             {
+#if DEBUG
+                Logger.LogInfo("GetModifiedDelay: Other med item type detected, delay is " + delay);  
+#endif
                 return delay;
             }
 
@@ -177,6 +238,9 @@ namespace CactusPie.FastHealing
                 if (FastHealingPlugin.SurgerySpeedMultiplierEnabled.Value)
                 {
                     delay *= FastHealingPlugin.SurgerySpeedMultiplier.Value;
+#if DEBUG
+                    Logger.LogInfo("GetModifiedDelay: SurgeryKit med item type detected, delay is " + delay);  
+#endif
                 }
 
                 return delay;
@@ -192,15 +256,23 @@ namespace CactusPie.FastHealing
                     if (healthPercentage > (FastHealingPlugin.DynamicHealTimeThreshold.Value / 100f))
                     {
                         delay *= (1f - healthPercentage) * FastHealingPlugin.DynamicHealTimeMultiplier.Value;
+#if DEBUG
+                        Logger.LogInfo("GetModifiedDelay: Medkit med item type detected and dynamic heal time mult enabled, delay is " + delay);  
+#endif
                     }
                 }
 
                 if (FastHealingPlugin.HealingSpeedMultiplierEnabled.Value)
                 {
                     delay *= FastHealingPlugin.HealingTimeMultiplier.Value;
+#if DEBUG
+                    Logger.LogInfo("GetModifiedDelay: Medkit med item type detected, delay is " + delay);  
+#endif
                 }
             }
-
+#if DEBUG
+            Logger.LogInfo("GetModifiedDelay:Final delay is " + delay);  
+#endif
             return delay;
         }
 
@@ -220,6 +292,9 @@ namespace CactusPie.FastHealing
 
             if (itemId == cmsId || itemId == surv12Id)
             {
+#if DEBUG
+                Logger.LogInfo("GetItemType: Found surgery kit item");  
+#endif
                 return MedsItemType.SurgeryKit;
             }
 
@@ -230,9 +305,14 @@ namespace CactusPie.FastHealing
                 itemName == ifak ||
                 itemName == yellowMedkit)
             {
+#if DEBUG
+                Logger.LogInfo("GetItemType: Found MedKit item");  
+#endif
                 return MedsItemType.Medkit;
             }
-
+#if DEBUG
+            Logger.LogInfo("GetItemType: Found Other item");  
+#endif
             return MedsItemType.Other;
         }
     }

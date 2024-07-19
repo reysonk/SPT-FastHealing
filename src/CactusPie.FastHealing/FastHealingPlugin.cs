@@ -4,7 +4,7 @@ using JetBrains.Annotations;
 
 namespace CactusPie.FastHealing
 {
-    [BepInPlugin("com.cactuspie.fasthealing", "CactusPie.FastHealing", "1.0.0")]
+    [BepInPlugin("com.cactuspie.fasthealing", "CactusPie.FastHealing", "1.2.0")]
     public class FastHealingPlugin : BaseUnityPlugin
     {
         internal static ConfigEntry<float> SurgerySpeedMultiplier { get; set; }
